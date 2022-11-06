@@ -1,0 +1,17 @@
+{
+	"name": "fact_trip",
+	"properties": {
+		"content": {
+			"query": "--############################################################################\n--Create fact_trip table\nCREATE TABLE fact_trip (\n    [trip_id] VARCHAR(50) NOT NULL,\n    [rider_id] INTEGER,\n    [start_station_id] VARCHAR(50), \n    [end_station_id] VARCHAR(50), \n    [start_time_id] VARCHAR(50), \n    [end_time_id] VARCHAR(50), \n    [rideable_type] VARCHAR(75),\n    [duration] VARCHAR(75),\n    [rider_age] VARCHAR(75)\n);\n\nALTER TABLE fact_trip add CONSTRAINT PK_fact_trip_trip_id PRIMARY KEY NONCLUSTERED (trip_id) NOT ENFORCED\n\n\nINSERT INTO fact_trip (\n    [trip_id],\n    [rider_id],\n    [start_station_id], \n    [end_station_id], \n    [start_time_id], \n    [end_time_id], \n    [rideable_type],\n    [duration],\n    [rider_age])\nSELECT \n    staging_trips.trip_id,\n    staging_riders.rider_id,\n    staging_trips.start_station_id, \n    staging_trips.end_station_id, \n    start_time.time_id                                                  AS start_time_id,\n    end_time.time_id                                                    AS end_time_id,\n    staging_trips.rideable_type,\n    DATEDIFF(hour, staging_trips.start_at, staging_trips.ended_at)      AS duration,\n    DATEDIFF(year, staging_riders.birthday, staging_trips.start_at)     AS rider_age\n\nFROM staging_trips\nJOIN staging_riders             ON staging_riders.rider_id = staging_trips.rider_id\nJOIN dim_time AS start_time     ON start_time._date = staging_trips.start_at\nJOIN dim_time AS end_time       ON DATEDIFF(dd, 0, end_time._date) = DATEDIFF(dd, 0, staging_trips.ended_at)\n--############################################################################\n\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "synapsepool",
+				"poolName": "synapsepool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

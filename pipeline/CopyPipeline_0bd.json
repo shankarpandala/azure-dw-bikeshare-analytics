@@ -1,0 +1,121 @@
+{
+	"name": "CopyPipeline_0bd",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach_0bd",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.cw_items",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copy_0bd",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [
+								{
+									"name": "Source",
+									"value": "public.@{item().source.table}"
+								},
+								{
+									"name": "Destination",
+									"value": "dwfilesystem//@{item().destination.fileName}"
+								}
+							],
+							"typeProperties": {
+								"source": {
+									"type": "AzurePostgreSqlSource"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"validateDataConsistency": false
+							},
+							"inputs": [
+								{
+									"referenceName": "SourceDataset_0bd",
+									"type": "DatasetReference",
+									"parameters": {
+										"cw_table": "@item().source.table"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DestinationDataset_0bd",
+									"type": "DatasetReference",
+									"parameters": {
+										"cw_fileName": "@item().destination.fileName"
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"cw_items": {
+				"type": "Array",
+				"defaultValue": [
+					{
+						"source": {
+							"table": "payment"
+						},
+						"destination": {
+							"fileName": "publicpayment.txt"
+						}
+					},
+					{
+						"source": {
+							"table": "rider"
+						},
+						"destination": {
+							"fileName": "publicrider.txt"
+						}
+					},
+					{
+						"source": {
+							"table": "station"
+						},
+						"destination": {
+							"fileName": "publicstation.txt"
+						}
+					},
+					{
+						"source": {
+							"table": "trip"
+						},
+						"destination": {
+							"fileName": "publictrip.txt"
+						}
+					}
+				]
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-11-06T12:14:19Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}
