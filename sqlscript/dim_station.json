@@ -1,0 +1,17 @@
+{
+	"name": "dim_station",
+	"properties": {
+		"content": {
+			"query": "--############################################################################\n--Create dim_station table\n\nCREATE TABLE dim_station (\n\t[station_id] [nvarchar](4000)  NULL,\n\t[_name] [nvarchar](4000)  NULL,\n\t[latitude] [float]  NULL,\n\t[longitude] [float]  NULL\n)\nGO;\n\nINSERT INTO dim_station ([station_id],[_name],[latitude],[longitude])\n    SELECT [station_id],[_name],[latitude],[longitude]\n    FROM staging_stations\n\nGO;\n\nSELECT TOP (100) * FROM [dbo].[dim_station]\n--############################################################################",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "synapsepool",
+				"poolName": "synapsepool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

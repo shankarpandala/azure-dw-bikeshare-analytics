@@ -1,0 +1,17 @@
+{
+	"name": "dim_rider",
+	"properties": {
+		"content": {
+			"query": "--############################################################################\n-- Create Rider table\n\n\nCREATE TABLE dim_rider (\n\t[rider_id] [bigint]  NULL,\n\t[first_name] [nvarchar](4000)  NULL,\n\t[last_name] [nvarchar](4000)  NULL,\n\t[address] [nvarchar](4000)  NULL,\n\t[birthday] [varchar](50)  NULL,\n\t[account_start_date] [varchar](50)  NULL,\n\t[account_end_date] [varchar](50)  NULL,\n\t[is_member] [bit]  NULL\n)\nGO;\n\nINSERT INTO dim_rider (\n    [rider_id]\n    ,[first_name]\n    ,[last_name]\n    ,[address]\n    ,[birthday]\n    ,[account_start_date]\n    ,[account_end_date]\n    ,[is_member])\nSELECT \n    [rider_id]\n    ,[first_name]\n    ,[last_name]\n    ,[address]\n    ,[birthday]\n    ,[account_start_date]\n    ,[account_end_date]\n    ,[is_member]\nFROM staging_riders\n\nGO;\n\nSELECT TOP (100) * FROM [dbo].[dim_rider]\n--############################################################################",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "synapsepool",
+				"poolName": "synapsepool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

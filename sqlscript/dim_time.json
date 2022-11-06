@@ -1,0 +1,17 @@
+{
+	"name": "dim_time",
+	"properties": {
+		"content": {
+			"query": "--############################################################################\n--Create dim_time table\n\nCREATE TABLE dim_time (\n\t[time_id] [uniqueidentifier] NOT NULL,\n\t[_date] [varchar](50)  NULL,\n    [dayofweek] int,\n    [dayofmonth] int,\n    [weekofyear] int,\n\t[_quarter] int,\n\t[_month] int,\n\t[_year] int\n)\nGO;\n\nALTER TABLE dim_time add CONSTRAINT PK_dim_time_time_id PRIMARY KEY NONCLUSTERED (time_id) NOT ENFORCED\n\nDECLARE @StartDate DATETIME\nDECLARE @EndDate DATETIME\nSET @StartDate = (SELECT MIN(TRY_CONVERT(datetime, left(start_at, 19))) FROM staging_trips)\nSET @EndDate = DATEADD(year, 5, (SELECT MAX(TRY_CONVERT(datetime, left(start_at, 19))) FROM staging_trips))\n\nWHILE @StartDate <= @EndDate\n    BEGIN\n        INSERT INTO [dim_time]\n        SELECT\n            NEWID(),\n            @StartDate,\n            DATEPART(WEEKDAY, @StartDate),\n            DATEPART(DAY, @StartDate),\n            DATEPART(WEEK, @StartDate),\n            DATEPART(QUARTER, @StartDate),\n            DATEPART(MONTH, @StartDate),\n            DATEPART(YEAR, @StartDate)\n\n        SET @StartDate = DATEADD(day, 1, @StartDate)\n    END\n\n\nSELECT TOP (100) * FROM [dbo].[dim_time]\n--############################################################################",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "synapsepool",
+				"poolName": "synapsepool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
