@@ -1,0 +1,17 @@
+{
+	"name": "fact_payment",
+	"properties": {
+		"content": {
+			"query": "--############################################################################\n--Create dim_payment tableBEGIN \n\nCREATE TABLE fact_payment (\n\t[payments_id] [bigint]  NULL,\n\t[amount] [float]  NULL,\n\t[rider_id] [bigint]  NULL,\n\t[time_id] [uniqueidentifier]  NULL\n)\nGO;\n\nINSERT INTO fact_payment (\n\t[payments_id],\n\t[amount],\n\t[rider_id] ,\n\t[time_id])\nSELECT\n    [payments_id],\n    [staging_payments].[amount],\n    [staging_payments].[rider_id],\n    [dim_time].[time_id]\nFROM [dbo].[staging_payments]\nJOIN dim_time ON dim_time._date = staging_payments._date\n\nGO;\n\nSELECT TOP (100) * FROM [dbo].[fact_payment]\n--############################################################################",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "synapsepool",
+				"poolName": "synapsepool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
