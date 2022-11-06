@@ -1,0 +1,514 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Workspace name",
+			"defaultValue": "shankar-dw-synapse"
+		},
+		"ls_postgresql_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_postgresql'"
+		},
+		"shankar-dw-synapse-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'shankar-dw-synapse-WorkspaceDefaultSqlServer'"
+		},
+		"shankar-dw-synapse-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://dwstorageshankar.dfs.core.windows.net"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/synapsepool')]",
+			"type": "Microsoft.Synapse/workspaces/sqlPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/CopyPipeline_0bd')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach_0bd",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@pipeline().parameters.cw_items",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copy_0bd",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [
+										{
+											"name": "Source",
+											"value": "public.@{item().source.table}"
+										},
+										{
+											"name": "Destination",
+											"value": "dwfilesystem//@{item().destination.fileName}"
+										}
+									],
+									"typeProperties": {
+										"source": {
+											"type": "AzurePostgreSqlSource"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"validateDataConsistency": false
+									},
+									"inputs": [
+										{
+											"referenceName": "SourceDataset_0bd",
+											"type": "DatasetReference",
+											"parameters": {
+												"cw_table": "@item().source.table"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DestinationDataset_0bd",
+											"type": "DatasetReference",
+											"parameters": {
+												"cw_fileName": "@item().destination.fileName"
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"cw_items": {
+						"type": "Array",
+						"defaultValue": [
+							{
+								"source": {
+									"table": "payment"
+								},
+								"destination": {
+									"fileName": "publicpayment.txt"
+								}
+							},
+							{
+								"source": {
+									"table": "rider"
+								},
+								"destination": {
+									"fileName": "publicrider.txt"
+								}
+							},
+							{
+								"source": {
+									"table": "station"
+								},
+								"destination": {
+									"fileName": "publicstation.txt"
+								}
+							},
+							{
+								"source": {
+									"table": "trip"
+								},
+								"destination": {
+									"fileName": "publictrip.txt"
+								}
+							}
+						]
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-11-06T12:14:19Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/SourceDataset_0bd')]",
+				"[concat(variables('workspaceId'), '/datasets/DestinationDataset_0bd')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DestinationDataset_0bd')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "shankar-dw-synapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"cw_fileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().cw_fileName",
+							"type": "Expression"
+						},
+						"fileSystem": "dwfilesystem"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/shankar-dw-synapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SourceDataset_0bd')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_postgresql",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"cw_table": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzurePostgreSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "public",
+					"table": {
+						"value": "@dataset().cw_table",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ls_postgresql')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ls_postgresql')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_postgresql_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/shankar-dw-synapse-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('shankar-dw-synapse-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/shankar-dw-synapse-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('shankar-dw-synapse-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dim_rider')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "--############################################################################\n-- Create Rider table\n\n\nCREATE TABLE dim_rider (\n\t[rider_id] [bigint]  NULL,\n\t[first_name] [nvarchar](4000)  NULL,\n\t[last_name] [nvarchar](4000)  NULL,\n\t[address] [nvarchar](4000)  NULL,\n\t[birthday] [varchar](50)  NULL,\n\t[account_start_date] [varchar](50)  NULL,\n\t[account_end_date] [varchar](50)  NULL,\n\t[is_member] [bit]  NULL\n)\nGO;\n\nINSERT INTO dim_rider (\n    [rider_id]\n    ,[first_name]\n    ,[last_name]\n    ,[address]\n    ,[birthday]\n    ,[account_start_date]\n    ,[account_end_date]\n    ,[is_member])\nSELECT \n    [rider_id]\n    ,[first_name]\n    ,[last_name]\n    ,[address]\n    ,[birthday]\n    ,[account_start_date]\n    ,[account_end_date]\n    ,[is_member]\nFROM staging_riders\n\nGO;\n\nSELECT TOP (100) * FROM [dbo].[dim_rider]\n--############################################################################",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "synapsepool",
+						"poolName": "synapsepool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dim_station')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "--############################################################################\n--Create dim_station table\n\nCREATE TABLE dim_station (\n\t[station_id] [nvarchar](4000)  NULL,\n\t[_name] [nvarchar](4000)  NULL,\n\t[latitude] [float]  NULL,\n\t[longitude] [float]  NULL\n)\nGO;\n\nINSERT INTO dim_station ([station_id],[_name],[latitude],[longitude])\n    SELECT [station_id],[_name],[latitude],[longitude]\n    FROM staging_stations\n\nGO;\n\nSELECT TOP (100) * FROM [dbo].[dim_station]\n--############################################################################",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "synapsepool",
+						"poolName": "synapsepool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dim_time')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "--############################################################################\n--Create dim_time table\n\nCREATE TABLE dim_time (\n\t[time_id] [uniqueidentifier] NOT NULL,\n\t[_date] [varchar](50)  NULL,\n    [dayofweek] int,\n    [dayofmonth] int,\n    [weekofyear] int,\n\t[_quarter] int,\n\t[_month] int,\n\t[_year] int\n)\nGO;\n\nALTER TABLE dim_time add CONSTRAINT PK_dim_time_time_id PRIMARY KEY NONCLUSTERED (time_id) NOT ENFORCED\n\nDECLARE @StartDate DATETIME\nDECLARE @EndDate DATETIME\nSET @StartDate = (SELECT MIN(TRY_CONVERT(datetime, left(start_at, 19))) FROM staging_trips)\nSET @EndDate = DATEADD(year, 5, (SELECT MAX(TRY_CONVERT(datetime, left(start_at, 19))) FROM staging_trips))\n\nWHILE @StartDate <= @EndDate\n    BEGIN\n        INSERT INTO [dim_time]\n        SELECT\n            NEWID(),\n            @StartDate,\n            DATEPART(WEEKDAY, @StartDate),\n            DATEPART(DAY, @StartDate),\n            DATEPART(WEEK, @StartDate),\n            DATEPART(QUARTER, @StartDate),\n            DATEPART(MONTH, @StartDate),\n            DATEPART(YEAR, @StartDate)\n\n        SET @StartDate = DATEADD(day, 1, @StartDate)\n    END\n\n\nSELECT TOP (100) * FROM [dbo].[dim_time]\n--############################################################################",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "synapsepool",
+						"poolName": "synapsepool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/fact_payment')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "--############################################################################\n--Create dim_payment tableBEGIN \n\nCREATE TABLE fact_payment (\n\t[payments_id] [bigint]  NULL,\n\t[amount] [float]  NULL,\n\t[rider_id] [bigint]  NULL,\n\t[time_id] [uniqueidentifier]  NULL\n)\nGO;\n\nINSERT INTO fact_payment (\n\t[payments_id],\n\t[amount],\n\t[rider_id] ,\n\t[time_id])\nSELECT\n    [payments_id],\n    [staging_payments].[amount],\n    [staging_payments].[rider_id],\n    [dim_time].[time_id]\nFROM [dbo].[staging_payments]\nJOIN dim_time ON dim_time._date = staging_payments._date\n\nGO;\n\nSELECT TOP (100) * FROM [dbo].[fact_payment]\n--############################################################################",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "synapsepool",
+						"poolName": "synapsepool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/fact_trip')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "--############################################################################\n--Create fact_trip table\nCREATE TABLE fact_trip (\n    [trip_id] VARCHAR(50) NOT NULL,\n    [rider_id] INTEGER,\n    [start_station_id] VARCHAR(50), \n    [end_station_id] VARCHAR(50), \n    [start_time_id] VARCHAR(50), \n    [end_time_id] VARCHAR(50), \n    [rideable_type] VARCHAR(75),\n    [duration] VARCHAR(75),\n    [rider_age] VARCHAR(75)\n);\n\nALTER TABLE fact_trip add CONSTRAINT PK_fact_trip_trip_id PRIMARY KEY NONCLUSTERED (trip_id) NOT ENFORCED\n\n\nINSERT INTO fact_trip (\n    [trip_id],\n    [rider_id],\n    [start_station_id], \n    [end_station_id], \n    [start_time_id], \n    [end_time_id], \n    [rideable_type],\n    [duration],\n    [rider_age])\nSELECT \n    staging_trips.trip_id,\n    staging_riders.rider_id,\n    staging_trips.start_station_id, \n    staging_trips.end_station_id, \n    start_time.time_id                                                  AS start_time_id,\n    end_time.time_id                                                    AS end_time_id,\n    staging_trips.rideable_type,\n    DATEDIFF(hour, staging_trips.start_at, staging_trips.ended_at)      AS duration,\n    DATEDIFF(year, staging_riders.birthday, staging_trips.start_at)     AS rider_age\n\nFROM staging_trips\nJOIN staging_riders             ON staging_riders.rider_id = staging_trips.rider_id\nJOIN dim_time AS start_time     ON start_time._date = staging_trips.start_at\nJOIN dim_time AS end_time       ON DATEDIFF(dd, 0, end_time._date) = DATEDIFF(dd, 0, staging_trips.ended_at)\n--############################################################################\n\n\n\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "synapsepool",
+						"poolName": "synapsepool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/payments')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "IF NOT EXISTS (SELECT * FROM sys.external_file_formats WHERE name = 'SynapseDelimitedTextFormat') \n\tCREATE EXTERNAL FILE FORMAT [SynapseDelimitedTextFormat] \n\tWITH ( FORMAT_TYPE = DELIMITEDTEXT ,\n\t       FORMAT_OPTIONS (\n\t\t\t FIELD_TERMINATOR = ',',\n\t\t\t USE_TYPE_DEFAULT = FALSE\n\t\t\t))\nGO\n\nIF NOT EXISTS (SELECT * FROM sys.external_data_sources WHERE name = 'dwfilesystem_dwstorageshankar_dfs_core_windows_net') \n\tCREATE EXTERNAL DATA SOURCE [dwfilesystem_dwstorageshankar_dfs_core_windows_net] \n\tWITH (\n\t\tLOCATION = 'abfss://dwfilesystem@dwstorageshankar.dfs.core.windows.net', \n\t\tTYPE = HADOOP \n\t)\nGO\n\nCREATE EXTERNAL TABLE staging_payments (\n\t[payments_id] bigint,\n\t[_date] VARCHAR(50),\n\t[amount] float,\n\t[rider_id] bigint\n\t)\n\tWITH (\n\tLOCATION = 'publicpayment.txt',\n\tDATA_SOURCE = [dwfilesystem_dwstorageshankar_dfs_core_windows_net],\n\tFILE_FORMAT = [SynapseDelimitedTextFormat]\n\t)\nGO\n\n\nSELECT TOP 100 * FROM dbo.staging_payments\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "synapsepool",
+						"poolName": "synapsepool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/riders')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "IF NOT EXISTS (SELECT * FROM sys.external_file_formats WHERE name = 'SynapseDelimitedTextFormat') \n\tCREATE EXTERNAL FILE FORMAT [SynapseDelimitedTextFormat] \n\tWITH ( FORMAT_TYPE = DELIMITEDTEXT ,\n\t       FORMAT_OPTIONS (\n\t\t\t FIELD_TERMINATOR = ',',\n\t\t\t USE_TYPE_DEFAULT = FALSE\n\t\t\t))\nGO\n\nIF NOT EXISTS (SELECT * FROM sys.external_data_sources WHERE name = 'dwfilesystem_dwstorageshankar_dfs_core_windows_net') \n\tCREATE EXTERNAL DATA SOURCE [dwfilesystem_dwstorageshankar_dfs_core_windows_net] \n\tWITH (\n\t\tLOCATION = 'abfss://dwfilesystem@dwstorageshankar.dfs.core.windows.net', \n\t\tTYPE = HADOOP \n\t)\nGO\n\nCREATE EXTERNAL TABLE staging_riders (\n\t[rider_id] bigint,\n\t[first_name] nvarchar(4000),\n\t[last_name] nvarchar(4000),\n\t[address] nvarchar(4000),\n\t[birthday] VARCHAR(50),\n\t[account_start_date] VARCHAR(50),\n\t[account_end_date] VARCHAR(50),\n\t[is_member] bit\n\t)\n\tWITH (\n\tLOCATION = 'publicrider.txt',\n\tDATA_SOURCE = [dwfilesystem_dwstorageshankar_dfs_core_windows_net],\n\tFILE_FORMAT = [SynapseDelimitedTextFormat]\n\t)\nGO\n\n\nSELECT TOP 100 * FROM dbo.staging_riders\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "synapsepool",
+						"poolName": "synapsepool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/stations')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "IF NOT EXISTS (SELECT * FROM sys.external_file_formats WHERE name = 'SynapseDelimitedTextFormat') \n\tCREATE EXTERNAL FILE FORMAT [SynapseDelimitedTextFormat] \n\tWITH ( FORMAT_TYPE = DELIMITEDTEXT ,\n\t       FORMAT_OPTIONS (\n\t\t\t FIELD_TERMINATOR = ',',\n\t\t\t USE_TYPE_DEFAULT = FALSE\n\t\t\t))\nGO\n\nIF NOT EXISTS (SELECT * FROM sys.external_data_sources WHERE name = 'dwfilesystem_dwstorageshankar_dfs_core_windows_net') \n\tCREATE EXTERNAL DATA SOURCE [dwfilesystem_dwstorageshankar_dfs_core_windows_net] \n\tWITH (\n\t\tLOCATION = 'abfss://dwfilesystem@dwstorageshankar.dfs.core.windows.net', \n\t\tTYPE = HADOOP \n\t)\nGO\n\nCREATE EXTERNAL TABLE staging_stations (\n\t[station_id] nvarchar(4000),\n\t[_name] nvarchar(4000),\n\t[latitude] float,\n\t[longitude] float\n\t)\n\tWITH (\n\tLOCATION = 'publicstation.txt',\n\tDATA_SOURCE = [dwfilesystem_dwstorageshankar_dfs_core_windows_net],\n\tFILE_FORMAT = [SynapseDelimitedTextFormat]\n\t)\nGO\n\n\nSELECT TOP 100 * FROM dbo.staging_stations\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "synapsepool",
+						"poolName": "synapsepool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/trips')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "IF NOT EXISTS (SELECT * FROM sys.external_file_formats WHERE name = 'SynapseDelimitedTextFormat') \n\tCREATE EXTERNAL FILE FORMAT [SynapseDelimitedTextFormat] \n\tWITH ( FORMAT_TYPE = DELIMITEDTEXT ,\n\t       FORMAT_OPTIONS (\n\t\t\t FIELD_TERMINATOR = ',',\n\t\t\t USE_TYPE_DEFAULT = FALSE\n\t\t\t))\nGO\n\nIF NOT EXISTS (SELECT * FROM sys.external_data_sources WHERE name = 'dwfilesystem_dwstorageshankar_dfs_core_windows_net') \n\tCREATE EXTERNAL DATA SOURCE [dwfilesystem_dwstorageshankar_dfs_core_windows_net] \n\tWITH (\n\t\tLOCATION = 'abfss://dwfilesystem@dwstorageshankar.dfs.core.windows.net', \n\t\tTYPE = HADOOP \n\t)\nGO\n\nCREATE EXTERNAL TABLE staging_trips (\n\t[trip_id] nvarchar(4000),\n\t[rideable_type] nvarchar(4000),\n\t[start_at] VARCHAR(50),\n\t[ended_at] VARCHAR(50),\n\t[start_station_id] nvarchar(4000),\n\t[end_station_id] nvarchar(4000),\n\t[rider_id] bigint\n\t)\n\tWITH (\n\tLOCATION = 'publictrip.txt',\n\tDATA_SOURCE = [dwfilesystem_dwstorageshankar_dfs_core_windows_net],\n\tFILE_FORMAT = [SynapseDelimitedTextFormat]\n\t)\nGO\n\n\nSELECT TOP 100 * FROM dbo.staging_trips\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "synapsepool",
+						"poolName": "synapsepool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/synapsepool')]",
+			"type": "Microsoft.Synapse/workspaces/sqlPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"collation": "SQL_Latin1_General_CP1_CI_AS",
+				"maxSizeBytes": 263882790666240,
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "eastus2"
+		}
+	]
+}
