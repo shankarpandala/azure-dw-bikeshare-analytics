@@ -67,6 +67,7 @@ use the ingest wizard to create a one-time pipeline that ingests the data from P
 4. Then add a destination link to **Azure Blob Storage** as a source and In the storage account, you should see the four datasets copied in from postgres
 ![postgresql](images/datacopysuccess.PNG)
 
+**All the scripts used are updated to the scipts folder of this repo**
 ## Step 5
 ## LOAD the data into external tables in the data warehouse
 
@@ -76,5 +77,5 @@ From Blob storage, the files in the Synapse Workspace we can use the script gene
 ## Step 6
 ## Transform the data to the star schema
 We will write SQL scripts to transform the data from the staging tables to the final star schema we designed. SQL scripts are in the repo
-
+**All the scripts used are updated to the scipts folder of this repo**
 ![postgresql](images/startables.PNG)
